@@ -1,0 +1,13 @@
+{
+  "name": "beta-go",
+  "private": true,
+  "scripts": {
+    "dev:api": "cd apps/api && go run ./cmd/api",
+    "dev:web": "npm --prefix apps/web run dev",
+    "build:web": "npm --prefix apps/web run build",
+    "test:api": "cd apps/api && go test ./..."
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}
