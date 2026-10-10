@@ -1,0 +1,9 @@
+{
+  "framework": "vite",
+  "installCommand": "npm --prefix apps/web ci",
+  "buildCommand": "npm --prefix apps/web run build",
+  "outputDirectory": "apps/web/dist",
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
