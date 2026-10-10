@@ -3,6 +3,8 @@ services:
     name: beta-go-api
     runtime: docker
     plan: free
+    # Production deploys come from the GitHub Action deploy hook after CI.
+    autoDeployTrigger: off
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: ./apps/api
     healthCheckPath: /healthz
