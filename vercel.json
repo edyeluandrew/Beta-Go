@@ -4,6 +4,7 @@
   "buildCommand": "npm --prefix apps/web run build",
   "outputDirectory": "apps/web/dist",
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://beta-go-api.onrender.com/api/:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
