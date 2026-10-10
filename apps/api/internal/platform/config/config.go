@@ -43,7 +43,7 @@ func FromEnv() (Config, error) {
 	env := value("ENV", "development")
 	cfg := Config{
 		Env:                  env,
-		HTTPAddr:             value("HTTP_ADDR", ":8080"),
+		HTTPAddr:             listenAddr(),
 		DatabaseURL:          strings.TrimSpace(os.Getenv("DATABASE_URL")),
 		GoogleClientID:       strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
 		SessionSecret:        os.Getenv("SESSION_SECRET"),
@@ -119,6 +119,16 @@ func (c Config) IsBootstrapAdmin(email string) bool {
 		}
 	}
 	return false
+}
+
+func listenAddr() string {
+	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" {
+		if strings.HasPrefix(port, ":") {
+			return port
+		}
+		return ":" + port
+	}
+	return value("HTTP_ADDR", ":8080")
 }
 
 func value(key, fallback string) string {

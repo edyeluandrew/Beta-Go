@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: beta-go-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: ./apps/api
+    healthCheckPath: /healthz
+    envVars:
+      - key: ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: WEB_ORIGIN
+        value: https://beta-go.vercel.app
+      - key: DATABASE_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: BOOTSTRAP_ADMIN_EMAILS
+        sync: false
