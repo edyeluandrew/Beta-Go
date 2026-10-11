@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Flag, LayoutDashboard, LogOut, Menu, Store, Wallet, X } from 'lucide-react'
+import { Flag, LayoutDashboard, LogOut, Menu, Scale, Store, Wallet, X } from 'lucide-react'
+import { Notifications } from './Notifications'
 import { canManageVendors, canTouchMoney, isSuperAdmin, type User } from '../auth/roles'
 import { ProfileMark } from './ProfileMark'
 
@@ -88,6 +89,10 @@ export function StaffShell({
               Launch
             </NavLink>
           )}
+          <NavLink to="/a/reconcile" className={itemClass}>
+            <Scale aria-hidden className="h-5 w-5" />
+            Reconcile
+          </NavLink>
         </nav>
 
         <div className="mt-auto grid gap-1 border-t border-line pt-4">
@@ -103,12 +108,15 @@ export function StaffShell({
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-card/95 px-3 py-2 backdrop-blur md:hidden">
-          <button type="button" className="grid h-11 w-11 place-items-center rounded-full text-ink" aria-label="Open menu" onClick={() => setOpen(true)}>
+        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-card/95 px-3 py-2 backdrop-blur">
+          <button type="button" className="grid h-11 w-11 place-items-center rounded-full text-ink md:hidden" aria-label="Open menu" onClick={() => setOpen(true)}>
             <Menu aria-hidden className="h-5 w-5" />
           </button>
-          <span className="font-display text-xl">Beta-Go</span>
-          <NavLink to="/a/profile" aria-label="Profile" className="ml-auto rounded-full no-underline">
+          <span className="font-display text-xl md:hidden">Beta-Go</span>
+          <div className="ml-auto">
+            <Notifications />
+          </div>
+          <NavLink to="/a/profile" aria-label="Profile" className="rounded-full no-underline md:hidden">
             <ProfileMark user={user} />
           </NavLink>
         </header>

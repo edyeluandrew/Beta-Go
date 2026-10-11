@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AdminHome } from '../features/admin/AdminHome'
+import { ReconcilePage } from '../features/admin/ReconcilePage'
 import { AdminProfilePage } from '../features/admin/AdminProfilePage'
 import { LaunchPage } from '../features/admin/LaunchPage'
 import { MoneyPage } from '../features/admin/MoneyPage'
@@ -101,6 +102,14 @@ export function AppRoutes() {
           element={
             <RequireRole roles={staffRoles}>
               <AdminHome />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/a/reconcile"
+          element={
+            <RequireRole roles={staffRoles}>
+              <ReconcilePage />
             </RequireRole>
           }
         />

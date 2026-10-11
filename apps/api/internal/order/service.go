@@ -50,6 +50,7 @@ type Service struct {
 	menu     Menu
 	dir      Directory
 	settings Settings
+	notes    announcer
 	now      func() time.Time
 }
 
@@ -178,13 +179,18 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Order, error) {
 	if in.Fulfilment == FulfilmentCollection {
 		pickup = newPickupCode()
 	}
-	return s.dir.Create(ctx, Order{
+	created, err := s.dir.Create(ctx, Order{
 		CustomerID: in.CustomerID, VendorID: in.VendorID, Status: StatusPendingPayment,
 		Fulfilment: in.Fulfilment, DeliveryAddress: in.Address, CustomerPhone: in.Phone,
 		FoodSubtotalUGX: food, DeliveryFeeUGX: delivery, TotalUGX: food + delivery,
 		CommissionRate: rate, CommissionUGX: commission,
 		IdempotencyKey: in.IdempotencyKey, RequestHash: hash, PickupCode: pickup, Items: snapshots,
 	})
+	if err != nil {
+		return Order{}, err
+	}
+	s.announce(ctx, "Order saved", "Pay the kitchen and they will see it.", "/c/orders/"+created.ID.String(), []uuid.UUID{created.CustomerID}, uuid.Nil, nil)
+	return created, nil
 }
 
 func (s *Service) List(ctx context.Context, customerID uuid.UUID) ([]Order, error) {

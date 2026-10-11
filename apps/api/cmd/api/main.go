@@ -14,6 +14,7 @@ import (
 	"beta-go/api/internal/commission"
 	"beta-go/api/internal/identity"
 	"beta-go/api/internal/launch"
+	"beta-go/api/internal/notify"
 	"beta-go/api/internal/ops"
 	"beta-go/api/internal/order"
 	"beta-go/api/internal/payment"
@@ -58,7 +59,8 @@ func main() {
 	vendorSvc := vendor.NewService(vendorDir, users)
 	vendorHandler := vendor.NewHandler(vendorSvc, service, cfg)
 	orderDir := order.NewStore(pool)
-	orderHandler := order.NewHandler(order.NewService(vendorSvc, vendorDir, orderDir, orderDir))
+	orderSvc := order.NewService(vendorSvc, vendorDir, orderDir, orderDir)
+	orderHandler := order.NewHandler(orderSvc)
 	var gateway payment.Provider
 	if cfg.Env != "production" && cfg.PaymentProvider == payment.ProviderSandbox && cfg.PaymentWebhookSecret != "" {
 		gateway = payment.NewSandbox()
@@ -67,9 +69,15 @@ func main() {
 	paymentHandler := payment.NewHandler(paySvc)
 	commissionSvc := commission.NewService(vendorDir, commission.NewStore(pool), orderDir, orderDir, gateway, cfg.PaymentWebhookSecret)
 	commissionHandler := commission.NewHandler(commissionSvc)
-	opsHandler := ops.NewHandler(ops.NewService(orderDir, vendorDir, commissionSvc, paySvc, ops.NewStore(pool), orderDir))
+	opsSvc := ops.NewService(orderDir, vendorDir, commissionSvc, paySvc, ops.NewStore(pool), orderDir)
+	opsHandler := ops.NewHandler(opsSvc)
+	notes := notify.New(pool, cfg.WebOrigin)
+	orderSvc.SetAnnouncer(notes)
+	paySvc.SetAnnouncer(notes)
+	opsSvc.SetAnnouncer(notes)
 	launchHandler := launch.NewHandler(launch.NewService(launch.NewStore(pool), users, cfg))
 	engine := httpserver.New(cfg, pool, handler, vendorHandler, orderHandler, paymentHandler, commissionHandler, opsHandler, launchHandler)
+	notify.Mount(engine, notes, handler.Sessions(), cfg)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

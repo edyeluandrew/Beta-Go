@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, LogOut, Menu, ShoppingBag, Store, X } from 'lucide-react'
 import type { User } from '../auth/roles'
+import { Notifications } from './Notifications'
 import { ProfileMark } from './ProfileMark'
 
 const itemClass = ({ isActive }: { isActive: boolean }) =>
@@ -92,12 +93,15 @@ export function CustomerShell({
       </aside>
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-card/95 px-3 py-2 backdrop-blur md:hidden">
-          <button type="button" className="grid h-11 w-11 place-items-center rounded-full text-ink" aria-label="Open menu" onClick={() => setOpen(true)}>
+        <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-line bg-card/95 px-3 py-2 backdrop-blur">
+          <button type="button" className="grid h-11 w-11 place-items-center rounded-full text-ink md:hidden" aria-label="Open menu" onClick={() => setOpen(true)}>
             <Menu aria-hidden className="h-5 w-5" />
           </button>
-          <span className="font-display text-xl">Beta-Go</span>
-          <NavLink to="/c/profile" aria-label="Profile" className="ml-auto rounded-full no-underline">
+          <span className="font-display text-xl md:hidden">Beta-Go</span>
+          <div className="ml-auto">
+            <Notifications />
+          </div>
+          <NavLink to="/c/profile" aria-label="Profile" className="rounded-full no-underline md:hidden">
             <ProfileMark user={user} />
           </NavLink>
         </header>

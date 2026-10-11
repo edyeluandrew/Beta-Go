@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { canManageVendors, canTouchMoney, isStaff, isSuperAdmin } from '../auth/roles'
 import { CustomerShell } from './CustomerShell'
 import { StaffShell } from './StaffShell'
+import { Notifications } from './Notifications'
 import { ProfileMark } from './ProfileMark'
 import { GhostButton } from './widgets'
 
@@ -97,6 +98,7 @@ export function Shell({ title, lede, children }: { title: string; lede: string; 
           )}
         </nav>
         <div className="ml-auto flex items-center gap-2.5">
+          {user ? <Notifications /> : null}
           {user ? (
             <>
               {roles.includes('customer') ? (

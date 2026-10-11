@@ -50,6 +50,7 @@ type Service struct {
 	settings Settings
 	provider Provider
 	secret   string
+	notes    announcer
 	clock    func() time.Time
 }
 
@@ -194,7 +195,10 @@ func (s *Service) AcceptWebhook(ctx context.Context, body []byte, signature stri
 	default:
 		return Payment{}, ErrBadInput
 	}
-	payment, _, err := s.ledger.ApplyProviderResult(ctx, payload.Reference, payload.EventID, payload.Status, s.now(), true)
+	payment, duplicate, err := s.ledger.ApplyProviderResult(ctx, payload.Reference, payload.EventID, payload.Status, s.now(), true)
+	if err == nil && !duplicate && payment.Status == StatusPaid {
+		s.notePaid(ctx, payment)
+	}
 	return payment, err
 }
 
@@ -232,6 +236,7 @@ func (s *Service) Reconcile(ctx context.Context) (Summary, error) {
 		switch updated.Status {
 		case StatusPaid:
 			summary.Paid++
+			s.notePaid(ctx, updated)
 		case StatusExpired:
 			summary.Expired++
 		case StatusRefundPending:

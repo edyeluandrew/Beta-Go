@@ -66,6 +66,7 @@ type Service struct {
 	payments Payments
 	records  Records
 	settings Settings
+	notes    announcer
 	now      func() time.Time
 }
 
@@ -110,7 +111,12 @@ func (s *Service) Accept(ctx context.Context, userID, orderID uuid.UUID) (order.
 	if _, err := s.pool.Reserve(ctx, orderID); err != nil {
 		return order.Order{}, err
 	}
-	return s.orders.Transition(ctx, orderID, order.StatusAwaitingVendor, order.StatusConfirmed, userID, "")
+	moved, err := s.orders.Transition(ctx, orderID, order.StatusAwaitingVendor, order.StatusConfirmed, userID, "")
+	if err != nil {
+		return order.Order{}, err
+	}
+	s.tellCustomer(ctx, moved, "Kitchen accepted", "Your order is confirmed.")
+	return moved, nil
 }
 
 func (s *Service) Reject(ctx context.Context, userID, orderID uuid.UUID, reason string) (order.Order, error) {
@@ -133,6 +139,7 @@ func (s *Service) Reject(ctx context.Context, userID, orderID uuid.UUID, reason 
 		return order.Order{}, err
 	}
 	_ = s.dueRefund(ctx, moved, reason)
+	s.tellCustomer(ctx, moved, "Kitchen declined", "This order was not accepted.")
 	return moved, nil
 }
 
@@ -151,7 +158,12 @@ func (s *Service) Advance(ctx context.Context, userID, orderID uuid.UUID, next s
 	if placed.Status != from {
 		return order.Order{}, ErrConflict
 	}
-	return s.orders.Transition(ctx, orderID, from, next, userID, "")
+	moved, err := s.orders.Transition(ctx, orderID, from, next, userID, "")
+	if err != nil {
+		return order.Order{}, err
+	}
+	s.tellCustomer(ctx, moved, "Order update", statusLine(next))
+	return moved, nil
 }
 
 func (s *Service) VendorCancel(ctx context.Context, userID, orderID uuid.UUID) (order.Order, error) {
@@ -174,6 +186,7 @@ func (s *Service) VendorCancel(ctx context.Context, userID, orderID uuid.UUID) (
 		return order.Order{}, err
 	}
 	_ = s.dueRefund(ctx, moved, ReasonVendorUnable)
+	s.tellCustomer(ctx, moved, "Order cancelled", "The kitchen cancelled this order.")
 	return moved, nil
 }
 
@@ -193,6 +206,7 @@ func (s *Service) ApproveCustomerCancel(ctx context.Context, userID, orderID uui
 		return order.Order{}, err
 	}
 	_ = s.dueRefund(ctx, moved, ReasonCustomerRequest)
+	s.tellCustomer(ctx, moved, "Cancellation approved", "The kitchen approved the cancellation.")
 	return moved, nil
 }
 
@@ -212,6 +226,7 @@ func (s *Service) CustomerCancel(ctx context.Context, customerID, orderID uuid.U
 			return order.Order{}, err
 		}
 		_ = s.dueRefund(ctx, moved, ReasonCustomerRequest)
+		s.announce(ctx, "Order cancelled", "The customer cancelled before the kitchen accepted.", "/v/orders/"+moved.ID.String(), nil, moved.VendorID, nil)
 		return moved, nil
 	case order.StatusConfirmed:
 		return s.orders.SetCancelRequested(ctx, orderID, true)
@@ -241,6 +256,7 @@ func (s *Service) Confirm(ctx context.Context, customerID, orderID uuid.UUID) (o
 	if _, err := s.pool.Capture(ctx, orderID); err != nil {
 		return order.Order{}, err
 	}
+	s.announce(ctx, "Order confirmed", "The customer confirmed this order.", "/v/orders/"+moved.ID.String(), nil, moved.VendorID, nil)
 	return moved, nil
 }
 
@@ -271,7 +287,11 @@ func (s *Service) OpenDispute(ctx context.Context, customerID, orderID uuid.UUID
 		OrderID: orderID, CustomerID: customerID, Reason: reason, Status: DisputeOpen,
 		OpenedAt: s.now(), EscalateAt: s.now().Add(time.Duration(s.intOr("dispute_escalate_hours", 48)) * time.Hour),
 	})
-	return saved, moved, err
+	if err != nil {
+		return Dispute{}, moved, err
+	}
+	s.announce(ctx, "Dispute opened", reason, "/a/reconcile", nil, uuid.Nil, []string{"support", "super_admin"})
+	return saved, moved, nil
 }
 
 func (s *Service) ResolveDispute(ctx context.Context, actor, disputeOrderID uuid.UUID, outcome, resolution string) (order.Order, error) {
@@ -298,6 +318,7 @@ func (s *Service) ResolveDispute(ctx context.Context, actor, disputeOrderID uuid
 		if _, err := s.pool.Capture(ctx, disputeOrderID); err != nil && !errors.Is(err, commission.ErrConflict) {
 			return order.Order{}, err
 		}
+		s.tellCustomer(ctx, moved, "Dispute closed", "This order was completed.")
 		return moved, nil
 	case order.StatusCancelled:
 		moved, err := s.orders.Transition(ctx, disputeOrderID, order.StatusDisputed, order.StatusCancelled, actor, resolution)
@@ -308,6 +329,7 @@ func (s *Service) ResolveDispute(ctx context.Context, actor, disputeOrderID uuid
 			return order.Order{}, err
 		}
 		_ = s.dueRefund(ctx, moved, resolution)
+		s.tellCustomer(ctx, moved, "Dispute closed", "This order was cancelled.")
 		return moved, nil
 	default:
 		return order.Order{}, ErrBadInput
@@ -415,6 +437,7 @@ func (s *Service) expire(ctx context.Context, placed order.Order, actor uuid.UUI
 		return order.Order{}, err
 	}
 	_ = s.dueRefund(ctx, moved, ReasonDecisionExpired)
+	s.tellCustomer(ctx, moved, "Order expired", "The kitchen did not accept in time.")
 	return moved, nil
 }
 
