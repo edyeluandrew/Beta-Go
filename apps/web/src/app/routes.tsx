@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AdminHome } from '../features/admin/AdminHome'
+import { AdminProfilePage } from '../features/admin/AdminProfilePage'
 import { LaunchPage } from '../features/admin/LaunchPage'
 import { MoneyPage } from '../features/admin/MoneyPage'
 import { VendorDetailPage } from '../features/admin/VendorDetailPage'
@@ -100,6 +101,14 @@ export function AppRoutes() {
           element={
             <RequireRole roles={staffRoles}>
               <AdminHome />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/a/profile"
+          element={
+            <RequireRole roles={staffRoles}>
+              <AdminProfilePage />
             </RequireRole>
           }
         />

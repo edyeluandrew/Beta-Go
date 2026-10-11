@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ApiError } from '../../shared/api/client'
 import { useAuth } from '../../shared/auth/AuthProvider'
-import { canManageVendors, canTouchMoney, isSuperAdmin } from '../../shared/auth/roles'
+import { canTouchMoney } from '../../shared/auth/roles'
 import { Shell } from '../../shared/ui/Shell'
 import { ErrorText, Field, GhostButton, Notice, PrimaryButton, inputClass } from '../../shared/ui/widgets'
 import { reconcileOrders, reconcilePayments, resolveDispute } from './api'
@@ -31,31 +30,7 @@ export function AdminHome() {
   }
 
   return (
-    <Shell title="Admin" lede="You open kitchen accounts. Vendors build the menu. The server still checks every role.">
-      <div className="mt-5 grid gap-2.5">
-        {canManageVendors(roles) && (
-          <Link className="rounded-2xl border border-line bg-card p-4 text-ink no-underline" to="/a/vendors">
-            <strong>Kitchens</strong>
-            <Notice>Create a vendor, send the Google invite, set the MTN or Airtel destination, then approve.</Notice>
-          </Link>
-        )}
-        {canTouchMoney(roles) && (
-          <Link className="rounded-2xl border border-line bg-card p-4 text-ink no-underline" to="/a/money">
-            <strong>Money</strong>
-            <Notice>Pool balances and adjustments. Support cannot open this. Above UGX 50,000 needs a second approver.</Notice>
-          </Link>
-        )}
-        {isSuperAdmin(roles) && (
-          <Link className="rounded-2xl border border-line bg-card p-4 text-ink no-underline" to="/a/launch">
-            <strong>Launch</strong>
-            <Notice>Security flags, audit, Neon backup check, and grant support or finance.</Notice>
-          </Link>
-        )}
-        {!canManageVendors(roles) && !canTouchMoney(roles) && (
-          <Notice>This account does not have a staff role that can use admin tools.</Notice>
-        )}
-      </div>
-
+    <Shell title={`Hi ${user?.name || 'there'}`} lede="Kitchens, money, and launch sit in the sidebar. Profile keeps the details for this account.">
       <section className="mt-6 rounded-[20px] border border-line bg-card p-6">
         <h2 className="text-2xl">Reconcile</h2>
         <p className="mt-2 text-sm text-muted">Uncertain money and late kitchen steps get reconciled, never ignored.</p>

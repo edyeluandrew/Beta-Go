@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { canManageVendors, canTouchMoney, isStaff, isSuperAdmin } from '../auth/roles'
 import { CustomerShell } from './CustomerShell'
+import { StaffShell } from './StaffShell'
 import { ProfileMark } from './ProfileMark'
 import { GhostButton } from './widgets'
 
@@ -14,6 +15,14 @@ export function Shell({ title, lede, children }: { title: string; lede: string; 
   const roles = user?.roles ?? []
   const home = !user ? '/' : isStaff(roles) ? '/a' : roles.includes('vendor') ? '/v' : '/c'
   const customerWorkspace = Boolean(user) && roles.includes('customer') && !roles.includes('vendor') && !isStaff(roles)
+
+  if (isStaff(roles) && user) {
+    return (
+      <StaffShell user={user} signOut={signOut} title={title} lede={lede}>
+        {children}
+      </StaffShell>
+    )
+  }
 
   if (customerWorkspace && user) {
     return (
