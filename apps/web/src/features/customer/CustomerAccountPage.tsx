@@ -1,29 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ChevronRight, MapPin, Phone, ShoppingBag, Store } from 'lucide-react'
 import { ApiError } from '../../shared/api/client'
 import { useAuth } from '../../shared/auth/AuthProvider'
 import { prettyStatus, ugx } from '../../shared/ui/money'
 import { Shell } from '../../shared/ui/Shell'
-import { ErrorText, Field, Notice, PrimaryButton, inputClass } from '../../shared/ui/widgets'
+import { ErrorText, Notice } from '../../shared/ui/widgets'
 import { listOrders, listVendors } from './api'
+import { ProfileMark } from '../../shared/ui/ProfileMark'
 import type { CustomerOrder, PublicVendor } from './types'
 
 export function CustomerAccountPage() {
-  const { user, updateProfile } = useAuth()
+  const { user } = useAuth()
   const [orders, setOrders] = useState<CustomerOrder[] | null>(null)
   const [vendors, setVendors] = useState<PublicVendor[]>([])
-  const [name, setName] = useState(user?.name ?? '')
-  const [phone, setPhone] = useState(user?.phone ?? '')
-  const [area, setArea] = useState(user?.area ?? '')
   const [error, setError] = useState('')
-  const [saved, setSaved] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    setName(user?.name ?? '')
-    setPhone(user?.phone ?? '')
-    setArea(user?.area ?? '')
-  }, [user])
 
   useEffect(() => {
     let active = true
@@ -47,41 +38,45 @@ export function CustomerAccountPage() {
   if (!user) return null
 
   return (
-    <Shell title={`Hi ${user.name || 'there'}`} lede="This is your customer dashboard. Browse kitchens any time. An account is only required to place and follow an order.">
-      {(!user.phone || !user.area) && (
-        <Notice>Add a phone and area so a kitchen can reach you when you order.</Notice>
-      )}
-      <section className="mt-6 grid gap-3 rounded-[20px] border border-line bg-card p-6">
-        <h2 className="text-2xl">Your details</h2>
-        <p className="text-sm text-muted">{user.email}</p>
-        <form
-          className="grid gap-3"
-          onSubmit={(event) => {
-            event.preventDefault()
-            setBusy(true)
-            setError('')
-            setSaved('')
-            void updateProfile({ name: name.trim(), phone: phone.trim(), area: area.trim() })
-              .then(() => setSaved('Saved.'))
-              .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Those details did not save.'))
-              .finally(() => setBusy(false))
-          }}
-        >
-          <Field label="Name">
-            <input className={inputClass} value={name} onChange={(event) => setName(event.target.value)} required />
-          </Field>
-          <Field label="Phone">
-            <input className={inputClass} value={phone} onChange={(event) => setPhone(event.target.value)} required />
-          </Field>
-          <Field label="Area in Kabale">
-            <input className={inputClass} value={area} onChange={(event) => setArea(event.target.value)} required />
-          </Field>
-          <PrimaryButton type="submit" disabled={busy}>
-            {busy ? 'Saving…' : 'Save details'}
-          </PrimaryButton>
-          {saved ? <p className="text-sm text-forest">{saved}</p> : null}
-        </form>
-      </section>
+    <Shell title={`Hi ${user.name || 'there'}`} lede="Your orders and kitchens. Profile keeps the details from signup.">
+      <Link className="mt-6 flex items-center gap-4 rounded-[20px] border border-line bg-card p-4 text-ink no-underline" to="/c/profile">
+        <ProfileMark user={user} className="h-14 w-14" />
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Profile</span>
+          <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+            <span className="inline-flex items-center gap-1">
+              <Phone aria-hidden className="h-3.5 w-3.5" />
+              {user.phone || 'Add a phone'}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin aria-hidden className="h-3.5 w-3.5" />
+              {user.area || 'Add an area'}
+            </span>
+          </span>
+        </span>
+        <ChevronRight aria-hidden className="h-5 w-5 shrink-0 text-forest" />
+      </Link>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Link className="flex items-center gap-3 rounded-2xl border border-line bg-card p-4 text-ink no-underline" to="/c/orders">
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-leaf text-forest">
+            <ShoppingBag aria-hidden className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block font-semibold">Orders</span>
+            <span className="text-sm text-muted">{orders === null ? 'Loading…' : orders.length === 0 ? 'None yet' : `${orders.length} placed`}</span>
+          </span>
+        </Link>
+        <Link className="flex items-center gap-3 rounded-2xl border border-line bg-card p-4 text-ink no-underline" to="/c">
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-leaf text-forest">
+            <Store aria-hidden className="h-5 w-5" />
+          </span>
+          <span>
+            <span className="block font-semibold">Kitchens</span>
+            <span className="text-sm text-muted">Browse what is cooking</span>
+          </span>
+        </Link>
+      </div>
 
       <section className="mt-8">
         <div className="flex items-end justify-between gap-3">

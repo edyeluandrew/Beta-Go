@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { canManageVendors, canTouchMoney, isStaff, isSuperAdmin } from '../auth/roles'
+import { ProfileMark } from './ProfileMark'
 import { GhostButton } from './widgets'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -79,7 +80,13 @@ export function Shell({ title, lede, children }: { title: string; lede: string; 
         <div className="ml-auto flex items-center gap-2.5">
           {user ? (
             <>
-              <span className="max-w-36 truncate text-sm">{user.name}</span>
+              {roles.includes('customer') ? (
+                <NavLink to="/c/profile" aria-label="Profile" title="Profile" className="rounded-full no-underline">
+                  <ProfileMark user={user} />
+                </NavLink>
+              ) : (
+                <span className="max-w-36 truncate text-sm">{user.name}</span>
+              )}
               <GhostButton
                 type="button"
                 onClick={() => {

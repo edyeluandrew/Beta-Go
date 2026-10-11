@@ -7,6 +7,7 @@ import { VendorsPage } from '../features/admin/VendorsPage'
 import { JoinPage } from '../features/auth/JoinPage'
 import { SignInPage } from '../features/auth/SignInPage'
 import { CustomerAccountPage } from '../features/customer/CustomerAccountPage'
+import { CustomerProfilePage } from '../features/customer/CustomerProfilePage'
 import { CustomerHome } from '../features/customer/CustomerHome'
 import { LandingPage } from '../features/customer/LandingPage'
 import { OrderPage } from '../features/customer/OrderPage'
@@ -34,6 +35,14 @@ export function AppRoutes() {
           element={
             <RequireRole roles={['customer']}>
               <CustomerAccountPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/c/profile"
+          element={
+            <RequireRole roles={['customer']}>
+              <CustomerProfilePage />
             </RequireRole>
           }
         />
