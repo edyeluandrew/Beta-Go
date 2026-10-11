@@ -61,6 +61,7 @@ export function ShopPage() {
     }, 0)
   }, [lines, shop])
   const deliveryFee = fulfilment === 'delivery' && shop ? shop.vendor.deliveryFeeUgx : 0
+  const closedMessage = shop ? kitchenClosedMessage(shop) : ''
 
   const placeOrder = async () => {
     if (!shop || lines.length === 0) return
@@ -190,11 +191,36 @@ export function ShopPage() {
             ? 'Minimum order is UGX 5,000. The server checks the price again.'
             : 'You can pick food now. Create an account on the next step to place the order.'}
         </p>
+        {closedMessage ? <p className="text-sm text-danger">{closedMessage}</p> : null}
         <ErrorText>{error}</ErrorText>
-        <PrimaryButton type="submit" disabled={busy || lines.length === 0}>
+        <PrimaryButton type="submit" disabled={busy || lines.length === 0 || Boolean(closedMessage)}>
           {busy ? 'Placing…' : user ? 'Place order' : 'Create account to order'}
         </PrimaryButton>
       </form>
     </Shell>
   )
+}
+
+function kitchenClosedMessage(shop: PublicShop) {
+  if (!shop.vendor.isOpen || !shop.vendor.acceptingOrders) return 'This kitchen is not taking orders right now.'
+  const now = kampalaNow()
+  const today = shop.hours.find((day) => day.weekday === now.weekday)
+  if (!today || today.closed || now.clock < today.opensAt || now.clock >= today.closesAt) {
+    return `${shop.vendor.businessName} is closed today.`
+  }
+  return ''
+}
+
+function kampalaNow() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Kampala',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date())
+  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(parts.find((part) => part.type === 'weekday')?.value ?? '')
+  const hour = (parts.find((part) => part.type === 'hour')?.value ?? '00').padStart(2, '0')
+  const minute = (parts.find((part) => part.type === 'minute')?.value ?? '00').padStart(2, '0')
+  return { weekday, clock: `${hour}:${minute}` }
 }
