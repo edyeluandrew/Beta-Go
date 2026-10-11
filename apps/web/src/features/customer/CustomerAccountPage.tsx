@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ShoppingBag, Store } from 'lucide-react'
 import { ApiError } from '../../shared/api/client'
 import { useAuth } from '../../shared/auth/AuthProvider'
 import { prettyStatus, ugx } from '../../shared/ui/money'
@@ -38,28 +37,7 @@ export function CustomerAccountPage() {
 
   return (
     <Shell title={`Hi ${user.name || 'there'}`} lede="Recent orders and kitchens that are cooking.">
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <Link className="flex items-center gap-3 rounded-2xl border border-line bg-card p-4 text-ink no-underline" to="/c/orders">
-          <span className="grid h-11 w-11 place-items-center rounded-full bg-leaf text-forest">
-            <ShoppingBag aria-hidden className="h-5 w-5" />
-          </span>
-          <span>
-            <span className="block font-semibold">Orders</span>
-            <span className="text-sm text-muted">{orders === null ? 'Loading…' : orders.length === 0 ? 'None yet' : `${orders.length} placed`}</span>
-          </span>
-        </Link>
-        <Link className="flex items-center gap-3 rounded-2xl border border-line bg-card p-4 text-ink no-underline" to="/c">
-          <span className="grid h-11 w-11 place-items-center rounded-full bg-leaf text-forest">
-            <Store aria-hidden className="h-5 w-5" />
-          </span>
-          <span>
-            <span className="block font-semibold">Kitchens</span>
-            <span className="text-sm text-muted">Browse what is cooking</span>
-          </span>
-        </Link>
-      </div>
-
-      <section className="mt-8">
+      <section className="mt-6">
         <div className="flex items-end justify-between gap-3">
           <h2 className="text-2xl">Recent orders</h2>
           <Link className="text-sm text-forest" to="/c/orders">
