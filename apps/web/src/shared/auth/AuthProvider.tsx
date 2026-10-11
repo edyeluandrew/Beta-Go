@@ -2,11 +2,15 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client'
 import { homeFor, type User } from './roles'
 
+type AccountDetails = { name: string; phone: string; area: string; email: string; password: string }
+
 type AuthState = {
   user: User | null
   ready: boolean
   refresh: () => Promise<User>
   signInWithGoogle: (idToken: string) => Promise<User>
+  register: (body: AccountDetails) => Promise<User>
+  signInWithPassword: (email: string, password: string) => Promise<User>
   updateProfile: (body: { name: string; phone: string; area: string }) => Promise<User>
   signOut: () => Promise<void>
 }
@@ -47,6 +51,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const result = await api<{ user: User }>('/api/v1/auth/google', {
           method: 'POST',
           body: JSON.stringify({ idToken }),
+        })
+        setUser(result.user)
+        return result.user
+      },
+      async register(body) {
+        const result = await api<{ user: User }>('/api/v1/auth/register', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        })
+        setUser(result.user)
+        return result.user
+      },
+      async signInWithPassword(email, password) {
+        const result = await api<{ user: User }>('/api/v1/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
         })
         setUser(result.user)
         return result.user

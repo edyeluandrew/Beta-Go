@@ -2,10 +2,13 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 
 	"beta-go/api/internal/identity"
 	"beta-go/api/internal/platform/config"
@@ -14,6 +17,8 @@ import (
 // UserDirectory is the identity storage sign-in is allowed to touch.
 type UserDirectory interface {
 	UpsertGoogleUser(ctx context.Context, profile identity.GoogleProfile, extraRoles []string) (identity.User, error)
+	CreateCustomer(ctx context.Context, email, name, phone, area, passwordHash string) (identity.User, error)
+	CredentialsByEmail(ctx context.Context, email string) (identity.User, string, error)
 	Find(ctx context.Context, id uuid.UUID) (identity.User, error)
 	UpdateProfile(ctx context.Context, id uuid.UUID, name, phone, area string) (identity.User, error)
 }
@@ -39,7 +44,18 @@ type Service struct {
 var (
 	_ UserDirectory = (*identity.Store)(nil)
 	_ Sessions      = (*SessionStore)(nil)
+
+	// dummyPasswordHash keeps a missing account on the same timing path as a real password check.
+	dummyPasswordHash = mustHash("beta-go-dummy-password")
 )
+
+func mustHash(password string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return string(hash)
+}
 
 func NewService(cfg config.Config, users UserDirectory, sessions Sessions, google Verifier) *Service {
 	return &Service{
@@ -74,6 +90,51 @@ func (s *Service) SignInWithGoogle(ctx context.Context, idToken, userAgent, ip s
 	user, err := s.users.UpsertGoogleUser(ctx, profile, extra)
 	if err != nil {
 		return SignedIn{}, err
+	}
+	if user.Disabled {
+		return SignedIn{}, ErrAccountDisabled
+	}
+	return s.startSession(ctx, user, userAgent, ip)
+}
+
+// Register opens a customer account with email and a password, then starts a session.
+// This is the path for someone who does not have Google. It never grants staff roles.
+func (s *Service) Register(ctx context.Context, name, phone, area, email, password, userAgent, ip string) (SignedIn, error) {
+	if problem := signupProblem(name, phone, area, email, password); problem != "" {
+		return SignedIn{}, InputError{Message: problem}
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return SignedIn{}, err
+	}
+	user, err := s.users.CreateCustomer(ctx, strings.TrimSpace(email), strings.TrimSpace(name), strings.TrimSpace(phone), strings.TrimSpace(area), string(hash))
+	if err != nil {
+		return SignedIn{}, err
+	}
+	return s.startSession(ctx, user, userAgent, ip)
+}
+
+// Login checks an email and password and starts a session.
+// A Google-only account and a wrong password both fail the same way.
+func (s *Service) Login(ctx context.Context, email, password, userAgent, ip string) (SignedIn, error) {
+	email = strings.TrimSpace(email)
+	if email == "" || password == "" {
+		return SignedIn{}, ErrUnauthorized
+	}
+	user, hash, err := s.users.CredentialsByEmail(ctx, email)
+	if errors.Is(err, identity.ErrNotFound) {
+		hash = ""
+		err = nil
+	}
+	if err != nil {
+		return SignedIn{}, err
+	}
+	compareWith := hash
+	if compareWith == "" {
+		compareWith = dummyPasswordHash
+	}
+	if bcrypt.CompareHashAndPassword([]byte(compareWith), []byte(password)) != nil || hash == "" {
+		return SignedIn{}, ErrUnauthorized
 	}
 	if user.Disabled {
 		return SignedIn{}, ErrAccountDisabled

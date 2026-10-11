@@ -137,6 +137,46 @@ func TestFoundationEndpoints(t *testing.T) {
 	})
 }
 
+func TestPasswordAccount(t *testing.T) {
+	engine := testEngine(t, newMemUsers(), newMemSessions(), fakeGoogle{}, "")
+	register := `{"name":"Amina","phone":"0772000111","area":"Makanga","email":"Amina@example.com","password":"longpassword"}`
+
+	status, body, cookies := callCookies(t, engine, http.MethodPost, "/api/v1/auth/register", register, nil)
+	if status != http.StatusOK || !strings.Contains(body, `"customer"`) || !strings.Contains(body, "0772000111") {
+		t.Fatalf("register %d body %s", status, body)
+	}
+	status, me := call(t, engine, http.MethodGet, "/api/v1/me", "", cookies)
+	if status != http.StatusOK || !strings.Contains(me, "amina@example.com") {
+		t.Fatalf("me %d body %s", status, me)
+	}
+
+	status, _ = call(t, engine, http.MethodPost, "/api/v1/auth/login", `{"email":"amina@example.com","password":"wrong-password"}`, nil)
+	if status != http.StatusUnauthorized {
+		t.Fatalf("bad password %d", status)
+	}
+	status, body, cookies = callCookies(t, engine, http.MethodPost, "/api/v1/auth/login", `{"email":"amina@example.com","password":"longpassword"}`, nil)
+	if status != http.StatusOK {
+		t.Fatalf("login %d body %s", status, body)
+	}
+	status, _ = call(t, engine, http.MethodGet, "/api/v1/me", "", cookies)
+	if status != http.StatusOK {
+		t.Fatalf("me after login %d", status)
+	}
+
+	status, _ = call(t, engine, http.MethodPost, "/api/v1/auth/register", register, nil)
+	if status != http.StatusConflict {
+		t.Fatalf("duplicate %d", status)
+	}
+	status, _ = call(t, engine, http.MethodPost, "/api/v1/auth/register", `{"name":"A","phone":"123","area":"","email":"nope","password":"short"}`, nil)
+	if status != http.StatusBadRequest {
+		t.Fatalf("invalid %d", status)
+	}
+	status, _ = call(t, engine, http.MethodPost, "/api/v1/auth/login", `{"email":"missing@example.com","password":"longpassword"}`, nil)
+	if status != http.StatusUnauthorized {
+		t.Fatalf("missing %d", status)
+	}
+}
+
 func TestGoogleSignInWithoutClientID(t *testing.T) {
 	cfg := testConfig("")
 	cfg.GoogleClientID = ""
@@ -220,12 +260,13 @@ func (f fakeGoogle) Verify(context.Context, string) (identity.GoogleProfile, err
 }
 
 type memUsers struct {
-	mu   sync.Mutex
-	byID map[uuid.UUID]identity.User
+	mu     sync.Mutex
+	byID   map[uuid.UUID]identity.User
+	hashes map[uuid.UUID]string
 }
 
 func newMemUsers() *memUsers {
-	return &memUsers{byID: map[uuid.UUID]identity.User{}}
+	return &memUsers{byID: map[uuid.UUID]identity.User{}, hashes: map[uuid.UUID]string{}}
 }
 
 func (m *memUsers) UpsertGoogleUser(_ context.Context, profile identity.GoogleProfile, extra []string) (identity.User, error) {
@@ -249,6 +290,38 @@ func (m *memUsers) UpsertGoogleUser(_ context.Context, profile identity.GooglePr
 	user.Roles = mergeRoles(user.Roles, append([]string{identity.RoleCustomer}, extra...))
 	m.byID[user.ID] = user
 	return user, nil
+}
+
+func (m *memUsers) CreateCustomer(_ context.Context, email, name, phone, area, passwordHash string) (identity.User, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, existing := range m.byID {
+		if strings.EqualFold(existing.Email, email) {
+			return identity.User{}, identity.ErrEmailTaken
+		}
+	}
+	user := identity.User{
+		ID:    uuid.New(),
+		Email: strings.ToLower(strings.TrimSpace(email)),
+		Name:  strings.TrimSpace(name),
+		Phone: strings.TrimSpace(phone),
+		Area:  strings.TrimSpace(area),
+		Roles: []string{identity.RoleCustomer},
+	}
+	m.byID[user.ID] = user
+	m.hashes[user.ID] = passwordHash
+	return user, nil
+}
+
+func (m *memUsers) CredentialsByEmail(_ context.Context, email string) (identity.User, string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for id, user := range m.byID {
+		if strings.EqualFold(user.Email, email) {
+			return user, m.hashes[id], nil
+		}
+	}
+	return identity.User{}, "", identity.ErrNotFound
 }
 
 func (m *memUsers) GrantRole(_ context.Context, id uuid.UUID, role string) error {

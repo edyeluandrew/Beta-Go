@@ -54,6 +54,50 @@ func (h *Handler) Google(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"user": userJSON(signedIn.User)})
 }
 
+func (h *Handler) Register(c *gin.Context) {
+	var body struct {
+		Name     string `json:"name"`
+		Phone    string `json:"phone"`
+		Area     string `json:"area"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		httpx.Error(c, http.StatusBadRequest, "invalid_request", "Those account details could not be read.")
+		return
+	}
+	signedIn, err := h.svc.Register(c.Request.Context(), body.Name, body.Phone, body.Area, body.Email, body.Password, c.Request.UserAgent(), c.ClientIP())
+	if err != nil {
+		var input InputError
+		if errors.As(err, &input) {
+			httpx.Error(c, http.StatusBadRequest, "invalid_request", input.Message)
+			return
+		}
+		h.writeAuthError(c, err, "Create the account again.")
+		return
+	}
+	h.setSessionCookies(c, signedIn)
+	c.JSON(http.StatusOK, gin.H{"user": userJSON(signedIn.User)})
+}
+
+func (h *Handler) Login(c *gin.Context) {
+	var body struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.Email == "" || body.Password == "" {
+		httpx.Error(c, http.StatusBadRequest, "invalid_request", "Enter your email and password.")
+		return
+	}
+	signedIn, err := h.svc.Login(c.Request.Context(), body.Email, body.Password, c.Request.UserAgent(), c.ClientIP())
+	if err != nil {
+		h.writeAuthError(c, err, "Email or password is wrong.")
+		return
+	}
+	h.setSessionCookies(c, signedIn)
+	c.JSON(http.StatusOK, gin.H{"user": userJSON(signedIn.User)})
+}
+
 func (h *Handler) Refresh(c *gin.Context) {
 	raw, _ := c.Cookie(refreshCookie)
 	signedIn, err := h.svc.Refresh(c.Request.Context(), raw)

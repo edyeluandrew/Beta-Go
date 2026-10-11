@@ -41,15 +41,18 @@ export function GhostButton({
 
 export function Field({
   label,
+  error,
   children,
 }: {
   label: string
+  error?: string
   children: ReactNode
 }) {
   return (
     <label className="grid gap-1.5 text-sm text-muted">
       {label}
       {children}
+      {error ? <span className="text-danger">{error}</span> : null}
     </label>
   )
 }

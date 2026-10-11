@@ -51,6 +51,8 @@ func registerRoutes(router *gin.Engine, cfg config.Config, pool *pgxpool.Pool, a
 	signInLimit := auth.NewLimiter(20, time.Minute)
 	signIn := api.Group("/auth")
 	signIn.POST("/google", signInLimit.Limit(), authHandler.Google)
+	signIn.POST("/register", signInLimit.Limit(), authHandler.Register)
+	signIn.POST("/login", signInLimit.Limit(), authHandler.Login)
 	signIn.POST("/refresh", authHandler.Refresh)
 	signIn.POST("/logout", authHandler.Logout)
 

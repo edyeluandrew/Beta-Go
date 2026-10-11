@@ -68,7 +68,7 @@ func (s *Store) UpsertGoogleUser(ctx context.Context, profile GoogleProfile, ext
 			name = CASE WHEN users.name = '' THEN EXCLUDED.name ELSE users.name END,
 			picture_url = EXCLUDED.picture_url,
 			updated_at = now()
-		RETURNING id, google_sub, email, name, COALESCE(picture_url, ''), COALESCE(phone, ''), COALESCE(area, ''), disabled_at IS NOT NULL
+		RETURNING id, COALESCE(google_sub, ''), email, name, COALESCE(picture_url, ''), COALESCE(phone, ''), COALESCE(area, ''), disabled_at IS NOT NULL
 	`, profile.Sub, profile.Email, profile.Name, profile.Picture).Scan(
 		&user.ID, &user.GoogleSub, &user.Email, &user.Name, &user.PictureURL, &user.Phone, &user.Area, &user.Disabled,
 	)
@@ -110,7 +110,7 @@ func (s *Store) FindByEmail(ctx context.Context, email string) (User, error) {
 func (s *Store) Find(ctx context.Context, id uuid.UUID) (User, error) {
 	var user User
 	err := s.pool.QueryRow(ctx, `
-		SELECT id, google_sub, email, name, COALESCE(picture_url, ''), COALESCE(phone, ''), COALESCE(area, ''), disabled_at IS NOT NULL
+		SELECT id, COALESCE(google_sub, ''), email, name, COALESCE(picture_url, ''), COALESCE(phone, ''), COALESCE(area, ''), disabled_at IS NOT NULL
 		FROM users
 		WHERE id = $1
 	`, id).Scan(&user.ID, &user.GoogleSub, &user.Email, &user.Name, &user.PictureURL, &user.Phone, &user.Area, &user.Disabled)
@@ -145,6 +145,59 @@ func (s *Store) Find(ctx context.Context, id uuid.UUID) (User, error) {
 		return User{}, fmt.Errorf("read roles: %w", err)
 	}
 	return user, nil
+}
+
+// CreateCustomer opens an account with email and a password hash. Public sign-up is customer only.
+func (s *Store) CreateCustomer(ctx context.Context, email, name, phone, area, passwordHash string) (User, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return User{}, fmt.Errorf("begin password user: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var id uuid.UUID
+	err = tx.QueryRow(ctx, `
+		INSERT INTO users (email, name, phone, area, password_hash)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`, strings.ToLower(strings.TrimSpace(email)), strings.TrimSpace(name), strings.TrimSpace(phone), strings.TrimSpace(area), passwordHash).Scan(&id)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return User{}, ErrEmailTaken
+		}
+		return User{}, fmt.Errorf("insert password user: %w", err)
+	}
+	if err := grantRole(ctx, tx, id, RoleCustomer); err != nil {
+		return User{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return User{}, fmt.Errorf("commit password user: %w", err)
+	}
+	return s.Find(ctx, id)
+}
+
+// CredentialsByEmail loads a person and their password hash for sign-in.
+// An empty hash means the account was opened with Google.
+func (s *Store) CredentialsByEmail(ctx context.Context, email string) (User, string, error) {
+	var id uuid.UUID
+	var hash string
+	err := s.pool.QueryRow(ctx, `
+		SELECT id, COALESCE(password_hash, '')
+		FROM users
+		WHERE lower(email) = lower($1)
+	`, strings.TrimSpace(email)).Scan(&id, &hash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return User{}, "", ErrNotFound
+	}
+	if err != nil {
+		return User{}, "", fmt.Errorf("find credentials: %w", err)
+	}
+	user, err := s.Find(ctx, id)
+	if err != nil {
+		return User{}, "", err
+	}
+	return user, hash, nil
 }
 
 // UpdateProfile stores the delivery details a customer gives when they create an account.
