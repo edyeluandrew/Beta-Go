@@ -32,7 +32,7 @@ export function VendorPoolPage() {
   }, [])
 
   return (
-    <Shell title="Commission pool" lede="Food payments never credit this pool. Below UGX 10,000 available the shop goes inactive.">
+    <Shell title="Pool" lede="Prepaid commission for this kitchen. Food payments do not land here. Under UGX 10,000 the shop cannot take orders.">
       {account && (
         <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
           <div className="rounded-2xl border border-line bg-card p-4">

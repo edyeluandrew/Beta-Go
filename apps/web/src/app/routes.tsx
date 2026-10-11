@@ -17,9 +17,13 @@ import { OrdersPage } from '../features/customer/OrdersPage'
 import { ShopPage } from '../features/customer/ShopPage'
 import { AcceptInvitePage } from '../features/vendor/AcceptInvitePage'
 import { VendorHome } from '../features/vendor/VendorHome'
+import { VendorHoursPage } from '../features/vendor/VendorHoursPage'
+import { VendorMenuPage } from '../features/vendor/VendorMenuPage'
 import { VendorOrderPage } from '../features/vendor/VendorOrderPage'
 import { VendorOrdersPage } from '../features/vendor/VendorOrdersPage'
 import { VendorPoolPage } from '../features/vendor/VendorPoolPage'
+import { VendorProfilePage } from '../features/vendor/VendorProfilePage'
+import { VendorShopPage } from '../features/vendor/VendorShopPage'
 import { staffRoles } from '../shared/auth/roles'
 import { RequireAuth, RequireRole } from './guards'
 
@@ -70,6 +74,38 @@ export function AppRoutes() {
           element={
             <RequireRole roles={['vendor']}>
               <VendorHome />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/v/menu"
+          element={
+            <RequireRole roles={['vendor']}>
+              <VendorMenuPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/v/hours"
+          element={
+            <RequireRole roles={['vendor']}>
+              <VendorHoursPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/v/shop"
+          element={
+            <RequireRole roles={['vendor']}>
+              <VendorShopPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/v/profile"
+          element={
+            <RequireRole roles={['vendor']}>
+              <VendorProfilePage />
             </RequireRole>
           }
         />

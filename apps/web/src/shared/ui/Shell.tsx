@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { canManageVendors, canTouchMoney, isStaff, isSuperAdmin } from '../auth/roles'
 import { CustomerShell } from './CustomerShell'
 import { StaffShell } from './StaffShell'
+import { VendorShell } from './VendorShell'
 import { Notifications } from './Notifications'
 import { ProfileMark } from './ProfileMark'
 import { GhostButton } from './widgets'
@@ -22,6 +23,14 @@ export function Shell({ title, lede, children }: { title: string; lede: string; 
       <StaffShell user={user} signOut={signOut} title={title} lede={lede}>
         {children}
       </StaffShell>
+    )
+  }
+
+  if (roles.includes('vendor') && user) {
+    return (
+      <VendorShell user={user} signOut={signOut} title={title} lede={lede}>
+        {children}
+      </VendorShell>
     )
   }
 
@@ -53,19 +62,6 @@ export function Shell({ title, lede, children }: { title: string; lede: string; 
               </NavLink>
               <NavLink to="/c/orders" className={linkClass}>
                 Orders
-              </NavLink>
-            </>
-          )}
-          {roles.includes('vendor') && (
-            <>
-              <NavLink to="/v" end className={linkClass}>
-                Shop
-              </NavLink>
-              <NavLink to="/v/orders" className={linkClass}>
-                Kitchen
-              </NavLink>
-              <NavLink to="/v/pool" className={linkClass}>
-                Pool
               </NavLink>
             </>
           )}

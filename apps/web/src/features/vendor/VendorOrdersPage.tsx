@@ -26,7 +26,7 @@ export function VendorOrdersPage() {
   }, [])
 
   return (
-    <Shell title="Kitchen" lede="Paid orders wait here. Accepting is a separate step from the customer paying.">
+    <Shell title="Orders" lede="Paid orders land here. Accept one before the window closes.">
       <ErrorText>{error}</ErrorText>
       {orders === null && !error && <Notice>Loading orders…</Notice>}
       {orders?.length === 0 && <Notice>No kitchen orders yet.</Notice>}
