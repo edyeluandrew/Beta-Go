@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, LogOut, Menu, ShoppingBag, Store, Ticket, X } from 'lucide-react'
+import { LayoutDashboard, LogOut, Menu, ShoppingBag, Store, X } from 'lucide-react'
 import type { User } from '../auth/roles'
 import { ProfileMark } from './ProfileMark'
 
@@ -83,10 +83,6 @@ export function CustomerShell({
           <NavLink to="/c/profile" className={itemClass} aria-label="Profile">
             <ProfileMark user={user} className="h-8 w-8" />
             Profile
-          </NavLink>
-          <NavLink to="/invite" className={itemClass}>
-            <Ticket aria-hidden className="h-5 w-5" />
-            Invite
           </NavLink>
           <button type="button" className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-ink hover:bg-leaf" onClick={leave}>
             <LogOut aria-hidden className="h-5 w-5" />

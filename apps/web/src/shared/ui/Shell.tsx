@@ -81,7 +81,7 @@ export function Shell({ title, lede, children }: { title: string; lede: string; 
               )}
             </>
           )}
-          {user && !roles.includes('vendor') && (
+          {user && !roles.includes('customer') && !roles.includes('vendor') && (
             <NavLink to="/invite" className={linkClass}>
               Invite
             </NavLink>
