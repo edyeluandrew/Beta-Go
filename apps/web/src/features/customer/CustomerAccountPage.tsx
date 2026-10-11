@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, MapPin, Phone, ShoppingBag, Store } from 'lucide-react'
+import { ShoppingBag, Store } from 'lucide-react'
 import { ApiError } from '../../shared/api/client'
 import { useAuth } from '../../shared/auth/AuthProvider'
 import { prettyStatus, ugx } from '../../shared/ui/money'
 import { Shell } from '../../shared/ui/Shell'
 import { ErrorText, Notice } from '../../shared/ui/widgets'
 import { listOrders, listVendors } from './api'
-import { ProfileMark } from '../../shared/ui/ProfileMark'
 import type { CustomerOrder, PublicVendor } from './types'
 
 export function CustomerAccountPage() {
@@ -38,26 +37,8 @@ export function CustomerAccountPage() {
   if (!user) return null
 
   return (
-    <Shell title={`Hi ${user.name || 'there'}`} lede="Your orders and kitchens. Profile keeps the details from signup.">
-      <Link className="mt-6 flex items-center gap-4 rounded-[20px] border border-line bg-card p-4 text-ink no-underline" to="/c/profile">
-        <ProfileMark user={user} className="h-14 w-14" />
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold">Profile</span>
-          <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-            <span className="inline-flex items-center gap-1">
-              <Phone aria-hidden className="h-3.5 w-3.5" />
-              {user.phone || 'Add a phone'}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <MapPin aria-hidden className="h-3.5 w-3.5" />
-              {user.area || 'Add an area'}
-            </span>
-          </span>
-        </span>
-        <ChevronRight aria-hidden className="h-5 w-5 shrink-0 text-forest" />
-      </Link>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+    <Shell title={`Hi ${user.name || 'there'}`} lede="Recent orders and kitchens that are cooking.">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <Link className="flex items-center gap-3 rounded-2xl border border-line bg-card p-4 text-ink no-underline" to="/c/orders">
           <span className="grid h-11 w-11 place-items-center rounded-full bg-leaf text-forest">
             <ShoppingBag aria-hidden className="h-5 w-5" />
